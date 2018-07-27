@@ -1,0 +1,89 @@
+---
+title: "Análise CNES - PROFISSINAIS"
+author: Rodrigo Silva (r_ds at hotmail.com)
+date: 05 de Julho de 2018
+output: html_notebook
+---
+
+Esta análise consiste apenas em filtra e agrupar dados especificos em relação aos profissionais de saúde cujo o CBO (2002) seja **223106** - **Médico Cardiologista**.
+
+Esta análise consistirá primeiramente em estudar quais variáveis estão presentes nas bases de dados, posteriormente na seleção e reagrupamento destes dados para então, por fim, realizar o processo de limpeza e normalização.
+
+Esta é a primeira etapa da análise mais profunda sobre o quadro **cardiovascular** atual da população brasileira. Este estudo também avaliará os dados de **mortalidade**, **hospitalar** e **ambulatorial**.
+
+> Os dados dos profissionais de saúde foram obtidos a partir do **TABNET**, sistema disponibilizado pelo **DATASUS/Ministério da Saúde** para consulta e tabulação de dados da saúde. Foram avaliados os dados do **CNES** de **Agosto/2005 até Maio/2018**
+
+# 1. Análise das Variáveis
+
+Definindo a variavel *path_data* que armazenará o caminho absoluto de onde se encontram os dados.
+```{r}
+
+path_data <- 'D:\\CNES'
+
+```
+
+Importando a biblioteca responsável por conseguir "abrir" os dados extraídos (que estão em formato proprietário) para então podermos avaliar as variáveis. Caso não possua esta biblioteca instalada, descomente a primeira linha e execute.
+
+```{r}
+
+# install.packages("read.dbc")
+library(read.dbc)
+
+```
+
+Agora vamos abrir alguns arquivos para avaliarmos sua estrutura. Por escolha pessoal, irei abrir os arquivos correspondentes ao estado do ACRE, o primeiro arquivo existente referente a Agosto/2005, o último arquivo referente a Maio/2018 e um do período intermediário desta série, de Janeiro/2011.
+
+Estamos interessado nos dados básicos sociais e profissionais, assim sendo, iremos olhar para dados como idade, raça/cor, sexo, carga horária, vínculos, e qualquer outro dados que se mostre interessante para esta análise.
+
+```{r}
+
+setwd(path_data)                          # configurando o caminho dos arquivos
+acre_2008 <- read.dbc('PFAC0508.dbc')     # Agosto de 2005
+acre_2011 <- read.dbc('PFAC1101.dbc')     # Janeiro de 2011
+acre_2018 <- read.dbc('PFAC1805.dbc')     # Maio de 2018
+
+```
+
+Agora vamos imprimir a estrutura dos arquivos:
+
+```{r}
+
+# ACRE - Agosto/2005
+str(acre_2008)
+
+```
+
+```{r}
+
+# ACRE - Janeiro/2011
+str(acre_2011)
+
+```
+
+```{r}
+
+# ACRE - Maio/2018
+str(acre_2018)
+
+```
+
+Já de cara percebemos que não há nenhuma mudança brusca nos tipos de dados que são armazenados. Entre o primeiro conjunto de dados e o último, apenas 1 nova variável foi adicionada: NAT_JUR; que é o dado que nos dá a informação sob qual natureja jurídica se encontra aquele determinado profissional no sua prestação de serviço ao SUS. Por se tratar de um dado adicionado recentemente à coleção de dados, iremos descartar já de cara esta variável.
+
+Perceba também que os dados sociais não estão presentes no sistema 
+
+Para não criar uma delongada explicação e justificativas, abaixo segue a lista que melhor nos interessa para a análise em questão.
+
+
+1. CODUFMUN
+2. TP_UNID
+3. CBO
+4. PROF_SUS
+5. PROFNSUS
+6. HORAHOSP
+7. HORA_AMB
+8. COMPETEN
+9. CNS_PROF
+
+Ainda que sem os demais dados imaginados, as variaveis listadas acima já podem nos mostrar um panorama de como estão os profissionais de saúde hoje no país e qual foi a evolução do cenário desde que o CNES começou a registrar estas informações. O último item é apenas para controle, nos ajudará a evitar contagem multiplas de um mesmo profissional, tomando atenção principalmente aos profissionais de saúde de regiões de fronteiras, como municipios de estados vizinhos.
+
+

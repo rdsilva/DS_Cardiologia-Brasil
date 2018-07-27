@@ -1,0 +1,57 @@
+---
+title: "Análise SIA - DOENÇAS CARDIACAS"
+author: Rodrigo Silva (r_ds at hotmail.com)
+date: 11 de Julho de 2018
+output: html_notebook
+---
+
+O objetivo deste documento, assim como os demais desta análise é obter apenas as informações necessárias sobre produção ambulatorial que envolvam as doenças especificas da área de cardiologia. 
+
+Para a análise dos dados do SIASUS foram considerados apens os arquivos de **LAUDOS DIVERSOS**.
+
+Desta forma replicaremos algumas partes que ja foram utilizadas.
+
+Lista das variáveis a serem consideradas:
+
+1. IDADE
+1. SEXO
+1. RACACOR
+1. ESC
+1. ESTCIV
+1. CODMUNRES
+1. LOCOCOR
+1. CAUSABAS
+1. DTOBITO
+
+# 1. Bibliotecas e Variaveis
+
+```{r}
+library(read.dbc)
+library(dplyr)
+library(future.apply)
+```
+
+```{r}
+path_data <- "D:\\SIA"
+```
+
+# 2. Funções
+
+```{r}
+grupoCID = function(dado){
+  subgrupo <- as.numeric(substr(dado, 2, 3))
+  
+  if (between(subgrupo, 10, 15)) { 
+    return("Doenças Hipertensivas") 
+  } else if (between(subgrupo, 20, 25)) {
+      return("Doenças Isquêmicas do Coração")
+  } else if (between(subgrupo, 30, 52)) {
+      return("Outras Formas de Doença do Coração")
+  } else if (between(subgrupo, 90, 99)) {
+      return("Casos não Específicos do Aparelho Circulatório")
+  } else {
+      return ("Outros")
+  }
+}
+```
+

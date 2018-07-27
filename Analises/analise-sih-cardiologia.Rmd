@@ -1,0 +1,154 @@
+---
+title: "Análise SIH - DOENÇAS CARDIACAS"
+author: Rodrigo Silva (r_ds at hotmail.com)
+date: 11 de Julho de 2018
+output: html_notebook
+---
+
+O objetivo deste documento, assim como os demais desta análise é obter apenas as informações necessárias sobre produção **hospitalar** que envolvam as doenças especificas da área de cardiologia. 
+
+Para a análise dos dados do SIHSUS foram considerados apenas os arquivos de **PRODUÇÃO HOSPITALAR**, arquivos iniciados com **RD**.
+
+Desta forma replicaremos algumas partes que ja foram utilizadas.
+
+Lista das variáveis a serem consideradas:
+
+1. NASC
+1. SEXO
+1. RACA_COR
+1. MUNIC_RES
+1. CID_NOTIF
+1. DI_INTER
+
+Observação: Filtrar apenas as entradas quando o Indice da APAC (AP_TPAPAC) for diferente de 2.
+
+# 1. Bibliotecas e Variaveis
+
+```{r}
+library(read.dbc)
+library(dplyr)
+library(future.apply)
+```
+
+```{r}
+path_data <- "D:\\SIH"
+```
+
+# 2. Funções
+
+```{r}
+grupoCID = function(dado){
+  subgrupo <- as.numeric(substr(dado, 2, 3))
+  
+  if (between(subgrupo, 10, 15)) { 
+    return("Doenças Hipertensivas") 
+  } else if (between(subgrupo, 20, 25)) {
+      return("Doenças Isquêmicas do Coração")
+  } else if (between(subgrupo, 30, 52)) {
+      return("Outras Formas de Doença do Coração")
+  } else if (between(subgrupo, 90, 99)) {
+      return("Casos não Específicos do Aparelho Circulatório")
+  } else {
+      return ("Outros")
+  }
+}
+```
+
+```{r}
+reduceSIH = function(data){
+  data$CID_NOTIF <- as.character(data$CID_NOTIF)
+  
+  tmp <- data %>%
+  select('NASC','SEXO','RACA_COR', 'MUNIC_RES', 'CID_NOTIF','DT_INTER') %>%
+  filter(startsWith(CID_NOTIF, "I"))
+  
+  tmp$CID_NOTIF <- substr(tmp$CID_NOTIF, 1, 3)
+  
+  tmp <- droplevels(tmp)
+  
+  tmp$GRUPO <- sapply(tmp$CID_NOTIF, grupoCID)
+  
+  return(tmp)
+}
+```
+
+```{r}
+readDBC = function(file){
+  
+  setwd(path_data)
+  
+  tryCatch({
+    tmp <- read.dbc(file)
+    res <- reduceSIH(tmp)
+    res <- droplevels(res)
+    return(res)
+  }, error=function(msg){
+      message(paste("Erro com o seguinte arquivo : ", file))
+      return(NA)
+  }, warning=function(msg){
+      message(paste("Alerta com o seguinte arquivo : ", file))
+      return(NA)
+    }
+  )
+  
+}
+```
+
+# 3. Processando os Dados
+
+```{r}
+listoffiles <- list.files(path_data, pattern = "RD")
+
+plan(multiprocess, workers = 2)
+
+t1 <- Sys.time()
+
+tempResultSIH <- future_lapply(listoffiles, readDBC)
+
+t2 <- Sys.time()
+
+resultSIH <- do.call(rbind, tempResultSIH)
+
+t3 <- Sys.time()
+
+str(resultSIH)
+```
+
+```{r}
+gc()
+```
+
+Custo de tempo
+
+```{r}
+print("Tempo abrindo os arquivos : ")
+t2 - t1
+
+print("Tempo fazendo o merge dos dados:")
+t3 - t2
+```
+
+Adicionando origem
+
+```{r}
+resultSIH$BASE <- "SIH"
+```
+
+Sumarisando os resultados:
+
+```{r}
+summary(resultSIH)
+```
+
+
+# 4. Exportando os resultados
+
+```{r}
+
+setwd("C:\\Users\\r_ds\\Documents\\Estudos\\Mortalidade\\Analises")
+
+write.csv2(resultSIH, "hospitalar-cardio.csv",row.names=FALSE)
+
+```
+
+
